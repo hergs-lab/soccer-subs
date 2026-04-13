@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sub Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:#f5f5f3;}
+body{font-family:'Barlow',sans-serif;-webkit-tap-highlight-color:transparent;}
+
+.app{max-width:420px;margin:0 auto;padding:12px;}
+
+.screen{display:none;}
+.screen.active{display:block;}
+
+h1{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:28px;font-weight:700;letter-spacing:0.02em;
+  color:#1a1a1a;margin-bottom:2px;
+}
+.subtitle{font-size:13px;color:#888;margin-bottom:20px;}
+
+.card{
+  background:#fff;
+  border:0.5px solid #e0e0e0;
+  border-radius:12px;
+  padding:16px;margin-bottom:12px;
+}
+.card-title{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:11px;font-weight:600;letter-spacing:0.1em;
+  text-transform:uppercase;color:#999;margin-bottom:12px;
+}
+
+input[type="text"]{
+  width:100%;margin-bottom:8px;
+  padding:10px 12px;
+  border:0.5px solid #ddd;border-radius:8px;
+  font-family:'Barlow',sans-serif;font-size:15px;
+  color:#1a1a1a;background:#fff;outline:none;
+}
+input[type="text"]:focus{border-color:#2d7a3a;}
+
+.name-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.name-row input{flex:1;margin-bottom:0;}
+.remove-btn{background:none;border:none;color:#bbb;cursor:pointer;font-size:20px;padding:0 4px;line-height:1;}
+.remove-btn:hover{color:#666;}
+
+.btn{
+  display:block;width:100%;padding:13px;
+  background:#fff;
+  border:0.5px solid #ccc;
+  border-radius:8px;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:17px;font-weight:600;letter-spacing:0.04em;
+  color:#1a1a1a;cursor:pointer;margin-bottom:8px;text-align:center;
+  -webkit-appearance:none;appearance:none;
+}
+.btn:hover{background:#f5f5f3;}
+.btn:active{transform:scale(0.98);}
+.btn-primary{background:#2d7a3a;border-color:#2d7a3a;color:#fff;}
+.btn-primary:hover{background:#236130;}
+.btn-sm{padding:9px 16px;font-size:14px;width:auto;display:inline-block;}
+.btn-danger{background:#fff5f5;border-color:#ffcdd2;color:#c62828;}
+.add-btn{font-size:13px;color:#2d7a3a;background:none;border:none;cursor:pointer;padding:4px 0;font-family:'Barlow',sans-serif;}
+
+.player-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.player-chip{
+  padding:12px;
+  border:0.5px solid #e0e0e0;
+  border-radius:8px;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:16px;font-weight:600;
+  cursor:pointer;text-align:center;
+  background:#fff;color:#1a1a1a;user-select:none;
+}
+.player-chip.on-field{background:#e8f5e9;border-color:#4caf50;color:#1b5e20;}
+.player-chip.on-bench{background:#f5f5f3;color:#999;}
+
+.zone-label{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:12px;font-weight:600;letter-spacing:0.08em;
+  text-transform:uppercase;color:#888;margin-bottom:8px;margin-top:16px;
+}
+.zone-label:first-child{margin-top:0;}
+
+.pitch-wrap{
+  border-radius:12px;overflow:hidden;margin-bottom:12px;
+  background:#2d7a3a;padding:12px;
+}
+.pitch-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.pitch-title{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:20px;font-weight:700;letter-spacing:0.04em;color:#fff;
+}
+.half-badge{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:600;letter-spacing:0.06em;
+  background:rgba(255,255,255,0.2);color:#fff;
+  padding:3px 10px;border-radius:20px;
+}
+.mute-row{display:flex;align-items:center;gap:8px;}
+.mute-label{font-size:12px;color:rgba(255,255,255,0.8);font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:0.04em;}
+.toggle{position:relative;width:36px;height:20px;}
+.toggle input{opacity:0;width:0;height:0;}
+.slider-track{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  background:rgba(255,255,255,0.3);border-radius:20px;cursor:pointer;transition:background 0.2s;
+}
+.slider-track:before{
+  content:"";position:absolute;width:14px;height:14px;
+  left:3px;top:3px;background:#fff;border-radius:50%;transition:transform 0.2s;
+}
+.toggle input:checked + .slider-track{background:rgba(255,255,255,0.9);}
+.toggle input:checked + .slider-track:before{transform:translateX(16px);background:#2d7a3a;}
+
+.pitch-field{
+  background:#3a8f48;
+  border-radius:8px;
+  border:2px solid rgba(255,255,255,0.6);
+  position:relative;padding:14px 8px;
+  min-height:140px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  margin-bottom:10px;
+}
+.pitch-field::before{
+  content:"";position:absolute;
+  left:50%;top:10px;bottom:10px;
+  width:1px;background:rgba(255,255,255,0.4);transform:translateX(-50%);
+}
+.pitch-field::after{
+  content:"";position:absolute;
+  left:50%;top:50%;transform:translate(-50%,-50%);
+  width:52px;height:52px;
+  border:1.5px solid rgba(255,255,255,0.4);border-radius:50%;
+}
+.field-players{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:6px;
+  position:relative;z-index:2;
+}
+.pitch-player{
+  background:rgba(255,255,255,0.95);
+  border-radius:6px;padding:6px 12px;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:15px;font-weight:700;
+  color:#1b5e20;white-space:nowrap;
+}
+
+.bench-label-row{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:11px;font-weight:600;letter-spacing:0.08em;
+  color:rgba(255,255,255,0.6);margin-bottom:6px;text-transform:uppercase;
+}
+.bench-strip{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
+.bench-player{
+  background:rgba(0,0,0,0.25);
+  border-radius:6px;padding:6px 12px;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:15px;font-weight:700;
+  color:rgba(255,255,255,0.85);white-space:nowrap;
+}
+
+.timer-card{
+  background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;
+  padding:16px;margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.timer-big{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:56px;font-weight:700;letter-spacing:-1px;
+  color:#1a1a1a;line-height:1;
+}
+.timer-meta{font-size:12px;color:#888;margin-top:4px;}
+.next-sub-label{font-size:11px;color:#999;margin-bottom:4px;font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;text-align:right;}
+.next-sub-val{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:28px;font-weight:700;color:#2d7a3a;text-align:right;
+}
+
+.controls{display:flex;gap:8px;margin-bottom:12px;}
+.controls .btn{margin-bottom:0;}
+
+.mins-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.mins-chip{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 10px;background:#f5f5f3;border-radius:8px;
+}
+.mins-name{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;color:#1a1a1a;}
+.mins-val{font-size:12px;color:#888;font-weight:500;}
+
+.alert-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.75);
+  display:flex;align-items:center;justify-content:center;
+  z-index:200;
+}
+.alert-box{
+  background:#fff;border-radius:16px;
+  padding:28px 24px;width:90%;max-width:360px;text-align:center;
+}
+.alert-title{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:28px;font-weight:700;letter-spacing:0.02em;
+  color:#1a1a1a;margin-bottom:4px;
+}
+.alert-sub{font-size:13px;color:#888;margin-bottom:20px;}
+.swap-section{margin-bottom:16px;}
+.swap-header{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;}
+.swap-header.off{color:#c62828;}
+.swap-header.on{color:#2d7a3a;}
+.swap-names{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
+.swap-pill{
+  font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;
+  padding:7px 16px;border-radius:6px;
+}
+.swap-pill.off{background:#ffebee;color:#c62828;}
+.swap-pill.on{background:#e8f5e9;color:#2d7a3a;}
+
+.manual-sub-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.75);
+  display:flex;align-items:center;justify-content:center;
+  z-index:200;
+}
+.manual-sub-box{
+  background:#fff;border-radius:16px;
+  padding:24px;width:90%;max-width:360px;text-align:center;
+}
+.pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;}
+.pick-chip{
+  padding:11px;border:0.5px solid #e0e0e0;border-radius:8px;
+  font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:600;
+  cursor:pointer;background:#fff;color:#1a1a1a;
+}
+.pick-chip:active{transform:scale(0.97);}
+.pick-chip.selected{background:#ffebee;border-color:#ef9a9a;color:#c62828;}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div id="screen-roster" class="screen active">
+    <h1>Squad setup</h1>
+    <p class="subtitle">Enter today's players</p>
+    <div class="card">
+      <div class="card-title">Players</div>
+      <div id="name-list"></div>
+      <button class="add-btn" onclick="addNameField()">+ add player</button>
+    </div>
+    <button class="btn btn-primary" onclick="goToLineup()">Set starting lineup</button>
+  </div>
+
+  <div id="screen-lineup" class="screen">
+    <h1>Starting lineup</h1>
+    <p class="subtitle">Tap players to toggle on field / bench</p>
+    <div class="zone-label" id="field-count-label">On field (0/4)</div>
+    <div class="player-grid" id="lineup-grid"></div>
+    <button class="btn btn-primary" style="margin-top:16px;" onclick="startGame()">Kick off</button>
+    <button class="btn" onclick="showScreen('screen-roster')">Back</button>
+  </div>
+
+  <div id="screen-game" class="screen">
+
+    <div id="swap-alert" style="display:none;" class="alert-overlay">
+      <div class="alert-box">
+        <div class="alert-title">Sub time</div>
+        <div class="alert-sub">Make these changes now</div>
+        <div class="swap-section">
+          <div class="swap-header off">Coming off</div>
+          <div class="swap-names" id="swap-off"></div>
+        </div>
+        <div class="swap-section">
+          <div class="swap-header on">Coming on</div>
+          <div class="swap-names" id="swap-on"></div>
+        </div>
+        <button class="btn btn-primary" onclick="confirmSwap()">Done</button>
+      </div>
+    </div>
+
+    <div class="pitch-wrap">
+      <div class="pitch-header">
+        <div class="pitch-title">On the pitch</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="half-badge" id="half-badge">1st half</span>
+          <div class="mute-row">
+            <span class="mute-label">Sound</span>
+            <label class="toggle">
+              <input type="checkbox" id="sound-toggle" checked>
+              <span class="slider-track"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="pitch-field">
+        <div class="field-players" id="field-list"></div>
+      </div>
+      <div class="bench-label-row">Bench</div>
+      <div class="bench-strip" id="bench-list"></div>
+    </div>
+
+    <div class="timer-card">
+      <div>
+        <div class="timer-big" id="timer-display">0:00</div>
+        <div class="timer-meta">this half</div>
+      </div>
+      <div>
+        <div class="next-sub-label">Next sub in</div>
+        <div class="next-sub-val" id="next-sub-display">5:00</div>
+      </div>
+    </div>
+
+    <div id="manual-sub-overlay" style="display:none;" class="manual-sub-overlay">
+      <div class="manual-sub-box">
+        <div class="alert-title" id="manual-sub-title">Manual sub</div>
+        <div class="alert-sub" id="manual-sub-sub">Who is coming off?</div>
+        <div class="pick-grid" id="manual-pick-grid"></div>
+        <button class="btn" onclick="cancelManualSub()">Cancel</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-primary" id="start-stop-btn" onclick="toggleTimer()">Start</button>
+      <button class="btn" onclick="triggerManualSub()">Sub now</button>
+      <button class="btn" onclick="resetHalf()">New half</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Minutes played</div>
+      <div class="mins-grid" id="minutes-list"></div>
+    </div>
+
+    <button class="btn btn-danger btn-sm" onclick="newGame()" style="margin-top:4px;">New game</button>
+  </div>
+
+</div>
+
+<script>
+var players=[];
+var onField=[];
+var onBench=[];
+var timerInterval=null;
+var seconds=0;
+var running=false;
+var nextSubAt=300;
+var totalSeconds={};
+var half=1;
+var pendingSwap=null;
+var audioCtx=null;
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.getElementById(id).classList.add('active');
+}
+
+function addNameField(val){
+  var list=document.getElementById('name-list');
+  var row=document.createElement('div');
+  row.className='name-row';
+  var input=document.createElement('input');
+  input.type='text';input.placeholder='Player name';
+  if(val)input.value=val;
+  var btn=document.createElement('button');
+  btn.className='remove-btn';btn.textContent='x';
+  btn.onclick=function(){row.remove();};
+  row.appendChild(input);row.appendChild(btn);
+  list.appendChild(row);
+}
+
+function getNames(){
+  return Array.from(document.querySelectorAll('#name-list input'))
+    .map(function(i){return i.value.trim();}).filter(Boolean);
+}
+
+function goToLineup(){
+  players=getNames();
+  if(players.length<2){alert('Add at least 2 players');return;}
+  onField=[];onBench=players.slice();
+  totalSeconds={};players.forEach(function(p){totalSeconds[p]=0;});
+  renderLineup();showScreen('screen-lineup');
+}
+
+function maxFieldCount(){return Math.ceil(players.length*4/7);}
+
+function renderLineup(){
+  var grid=document.getElementById('lineup-grid');
+  grid.innerHTML='';
+  var mf=maxFieldCount();
+  players.forEach(function(p){
+    var chip=document.createElement('div');
+    chip.className='player-chip '+(onField.indexOf(p)>-1?'on-field':'on-bench');
+    chip.textContent=p;
+    chip.onclick=function(){
+      if(onField.indexOf(p)>-1){
+        onField=onField.filter(function(x){return x!==p;});onBench.push(p);
+      } else {
+        if(onField.length>=mf){alert('Field is full ('+mf+' players)');return;}
+        onBench=onBench.filter(function(x){return x!==p;});onField.push(p);
+      }
+      renderLineup();
+    };
+    grid.appendChild(chip);
+  });
+  document.getElementById('field-count-label').textContent='On field ('+onField.length+'/'+mf+')';
+}
+
+function startGame(){
+  var mf=maxFieldCount();
+  if(onField.length!==mf){alert('Put exactly '+mf+' players on field');return;}
+  half=1;seconds=0;nextSubAt=300;
+  renderGame();showScreen('screen-game');
+}
+
+function renderGame(){
+  document.getElementById('half-badge').textContent=half===1?'1st half':'2nd half';
+  renderPitch();renderMinutes();updateNextSub();
+}
+
+function renderPitch(){
+  var fl=document.getElementById('field-list');
+  var bl=document.getElementById('bench-list');
+  fl.innerHTML='';bl.innerHTML='';
+  onField.forEach(function(p){
+    var el=document.createElement('div');
+    el.className='pitch-player';el.textContent=p;fl.appendChild(el);
+  });
+  onBench.forEach(function(p){
+    var el=document.createElement('div');
+    el.className='bench-player';el.textContent=p;bl.appendChild(el);
+  });
+}
+
+function renderMinutes(){
+  var ml=document.getElementById('minutes-list');
+  ml.innerHTML='';
+  var sorted=players.slice().sort(function(a,b){return totalSeconds[b]-totalSeconds[a];});
+  sorted.forEach(function(p){
+    var mins=Math.floor(totalSeconds[p]/60);
+    var secs=totalSeconds[p]%60;
+    var chip=document.createElement('div');
+    chip.className='mins-chip';
+    chip.innerHTML='<span class="mins-name">'+p+'</span><span class="mins-val">'+mins+':'+String(secs).padStart(2,'0')+'</span>';
+    ml.appendChild(chip);
+  });
+}
+
+function updateNextSub(){
+  var rem=Math.max(nextSubAt-seconds,0);
+  var m=Math.floor(rem/60);
+  var s=rem%60;
+  document.getElementById('next-sub-display').textContent=m+':'+String(s).padStart(2,'0');
+}
+
+function toggleTimer(){
+  if(running){
+    clearInterval(timerInterval);running=false;
+    document.getElementById('start-stop-btn').textContent='Resume';
+  } else {
+    running=true;
+    document.getElementById('start-stop-btn').textContent='Pause';
+    timerInterval=setInterval(tick,1000);
+  }
+}
+
+function tick(){
+  seconds++;
+  onField.forEach(function(p){totalSeconds[p]++;});
+  var m=Math.floor(seconds/60);
+  var s=seconds%60;
+  document.getElementById('timer-display').textContent=m+':'+String(s).padStart(2,'0');
+  updateNextSub();
+  renderMinutes();
+  if(seconds>=nextSubAt)triggerSubAlert();
+}
+
+function triggerSubAlert(){
+  clearInterval(timerInterval);running=false;
+  document.getElementById('start-stop-btn').textContent='Resume';
+  if(document.getElementById('sound-toggle').checked)playBeep();
+  if(onBench.length===0){nextSubAt+=300;return;}
+  var numSwap=onBench.length;
+  pendingSwap={off:onField.slice(0,numSwap),on:onBench.slice()};
+  var offEl=document.getElementById('swap-off');
+  var onEl=document.getElementById('swap-on');
+  offEl.innerHTML='';onEl.innerHTML='';
+  pendingSwap.off.forEach(function(p){
+    var pill=document.createElement('div');
+    pill.className='swap-pill off';pill.textContent=p;offEl.appendChild(pill);
+  });
+  pendingSwap.on.forEach(function(p){
+    var pill=document.createElement('div');
+    pill.className='swap-pill on';pill.textContent=p;onEl.appendChild(pill);
+  });
+  document.getElementById('swap-alert').style.display='flex';
+}
+
+function confirmSwap(){
+  document.getElementById('swap-alert').style.display='none';
+  var newField=onField.filter(function(p){return pendingSwap.off.indexOf(p)===-1;}).concat(pendingSwap.on);
+  var newBench=onBench.filter(function(p){return pendingSwap.on.indexOf(p)===-1;}).concat(pendingSwap.off);
+  onField=newField;onBench=newBench;
+  nextSubAt=seconds+300;pendingSwap=null;
+  renderPitch();updateNextSub();
+  toggleTimer();
+}
+
+function triggerManualSub(){
+  if(onBench.length===0){alert('No one on the bench to bring on');return;}
+  var wasRunning=running;
+  if(running){clearInterval(timerInterval);running=false;document.getElementById('start-stop-btn').textContent='Resume';}
+  showManualPickOff(wasRunning);
+}
+
+function showManualPickOff(wasRunning){
+  document.getElementById('manual-sub-title').textContent='Manual sub';
+  document.getElementById('manual-sub-sub').textContent='Who is coming off?';
+  var grid=document.getElementById('manual-pick-grid');
+  grid.innerHTML='';
+  onField.forEach(function(p){
+    var chip=document.createElement('div');
+    chip.className='pick-chip';chip.textContent=p;
+    chip.onclick=function(){
+      document.querySelectorAll('.pick-chip').forEach(function(c){c.classList.remove('selected');});
+      chip.classList.add('selected');
+      setTimeout(function(){showManualPickOn(p,wasRunning);},250);
+    };
+    grid.appendChild(chip);
+  });
+  document.getElementById('manual-sub-overlay').style.display='flex';
+}
+
+function showManualPickOn(playerOff, wasRunning){
+  document.getElementById('manual-sub-title').textContent=playerOff+' off';
+  document.getElementById('manual-sub-sub').textContent='Who is coming on?';
+  var grid=document.getElementById('manual-pick-grid');
+  grid.innerHTML='';
+  onBench.forEach(function(p){
+    var chip=document.createElement('div');
+    chip.className='pick-chip';chip.style.background='#e8f5e9';chip.style.borderColor='#81c784';chip.style.color='#1b5e20';
+    chip.textContent=p;
+    chip.onclick=function(){
+      chip.classList.add('selected');
+      setTimeout(function(){confirmManualSub(playerOff,p,wasRunning);},250);
+    };
+    grid.appendChild(chip);
+  });
+}
+
+function confirmManualSub(playerOff, playerOn, wasRunning){
+  document.getElementById('manual-sub-overlay').style.display='none';
+  onField=onField.filter(function(p){return p!==playerOff;});
+  onField.push(playerOn);
+  onBench=onBench.filter(function(p){return p!==playerOn;});
+  onBench.push(playerOff);
+  nextSubAt=seconds+300;
+  renderPitch();updateNextSub();
+  if(wasRunning){running=true;document.getElementById('start-stop-btn').textContent='Pause';timerInterval=setInterval(tick,1000);}
+}
+
+function cancelManualSub(){
+  document.getElementById('manual-sub-overlay').style.display='none';
+}
+
+function resetHalf(){
+  if(!confirm('Start new half? Timer resets, minutes carry over.'))return;
+  clearInterval(timerInterval);running=false;seconds=0;nextSubAt=300;
+  half=half===1?2:1;
+  document.getElementById('start-stop-btn').textContent='Start';
+  document.getElementById('timer-display').textContent='0:00';
+  renderGame();
+}
+
+function newGame(){
+  if(!confirm('Start a new game? All data will be reset.'))return;
+  clearInterval(timerInterval);running=false;
+  showScreen('screen-roster');
+}
+
+function playBeep(){
+  try{
+    if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    [0,200,400].forEach(function(delay){
+      var osc=audioCtx.createOscillator();
+      var gain=audioCtx.createGain();
+      osc.connect(gain);gain.connect(audioCtx.destination);
+      osc.frequency.value=880;
+      gain.gain.setValueAtTime(0.4,audioCtx.currentTime+delay/1000);
+      gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+delay/1000+0.15);
+      osc.start(audioCtx.currentTime+delay/1000);
+      osc.stop(audioCtx.currentTime+delay/1000+0.2);
+    });
+  }catch(e){}
+}
+
+addNameField('Sterling');
+for(var i=0;i<6;i++)addNameField();
+</script>
+</body>
+</html>
