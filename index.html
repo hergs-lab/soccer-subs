@@ -288,13 +288,9 @@ input[type="text"]:focus{border-color:#2d7a3a;}
         <div class="pitch-title">On the pitch</div>
         <div style="display:flex;align-items:center;gap:10px;">
           <span class="half-badge" id="half-badge">1st half</span>
-          <div class="mute-row">
-            <span class="mute-label">Sound</span>
-            <label class="toggle">
-              <input type="checkbox" id="sound-toggle" checked>
-              <span class="slider-track"></span>
-            </label>
-          </div>
+          <button id="sound-btn" onclick="toggleSound()" style="background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;" aria-label="Toggle sound">
+            <svg id="sound-icon" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"></svg>
+          </button>
         </div>
       </div>
       <div class="pitch-field">
@@ -370,6 +366,22 @@ var totalSeconds={};
 var half=1;
 var pendingSwap=null;
 var audioCtx=null;
+
+var soundOn=true;
+
+function toggleSound(){
+  soundOn=!soundOn;
+  renderSoundIcon();
+}
+
+function renderSoundIcon(){
+  var svg=document.getElementById('sound-icon');
+  if(soundOn){
+    svg.innerHTML='<path d="M6 10.5v7h4l5 4v-15l-5 4H6z" fill="rgba(255,255,255,0.9)"/><path d="M17.5 10.5c1.1 0.9 1.8 2.2 1.8 3.5s-0.7 2.6-1.8 3.5" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" fill="none"/><path d="M20 8c2 1.8 3.2 4.3 3.2 6s-1.2 4.2-3.2 6" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round" fill="none"/>';
+  } else {
+    svg.innerHTML='<path d="M6 10.5v7h4l5 4v-15l-5 4H6z" fill="rgba(255,255,255,0.4)"/><line x1="18" y1="10" x2="24" y2="18" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"/><line x1="24" y1="10" x2="18" y2="18" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"/>';
+  }
+}
 
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
@@ -510,7 +522,7 @@ function tick(){
   renderMinutes();
   if(seconds===1200&&!halftimeAlerted){
     halftimeAlerted=true;
-    if(document.getElementById('sound-toggle').checked)playHalftimeBeep();
+    if(soundOn)playHalftimeBeep();
   }
   if(seconds>=nextSubAt)triggerSubAlert();
 }
@@ -531,7 +543,7 @@ document.addEventListener('visibilitychange',function(){
       renderMinutes();
       if(seconds>=1200&&!halftimeAlerted){
         halftimeAlerted=true;
-        if(document.getElementById('sound-toggle').checked)playHalftimeBeep();
+        if(soundOn)playHalftimeBeep();
       }
       if(seconds>=nextSubAt){triggerSubAlert();return;}
     }
@@ -542,7 +554,7 @@ document.addEventListener('visibilitychange',function(){
 function triggerSubAlert(){
   clearInterval(timerInterval);running=false;
   document.getElementById('start-stop-btn').textContent='Resume';
-  if(document.getElementById('sound-toggle').checked)playBeep();
+  if(soundOn)playBeep();
   if(onBench.length===0){nextSubAt+=300;return;}
   var numSwap=onBench.length;
   pendingSwap={off:onField.slice(0,numSwap),on:onBench.slice()};
@@ -707,6 +719,7 @@ function playHalftimeBeep(){
 }
 
 for(var i=0;i<7;i++)addNameField();
+renderSoundIcon();
 
 document.addEventListener('touchstart',function initAudio(){
   if(!audioCtx){
