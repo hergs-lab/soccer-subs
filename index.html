@@ -237,6 +237,8 @@ input[type="text"]:focus{border-color:#2d7a3a;}
 }
 .pick-chip:active{transform:scale(0.97);}
 .pick-chip.selected{background:#ffebee;border-color:#ef9a9a;color:#c62828;}
+.btn:disabled{opacity:0.35;cursor:not-allowed;transform:none;}
+.btn-primary:disabled{background:#2d7a3a;border-color:#2d7a3a;color:#fff;}
 </style>
 </head>
 <body>
@@ -251,7 +253,7 @@ input[type="text"]:focus{border-color:#2d7a3a;}
       <div id="name-list"></div>
       <button class="add-btn" onclick="addNameField()">+ add player</button>
     </div>
-    <button class="btn btn-primary" onclick="goToLineup()">Set starting lineup</button>
+    <button class="btn btn-primary" id="lineup-btn" onclick="goToLineup()" disabled>Set starting lineup</button>
   </div>
 
   <div id="screen-lineup" class="screen">
@@ -259,7 +261,7 @@ input[type="text"]:focus{border-color:#2d7a3a;}
     <p class="subtitle">Tap players to toggle on field / bench</p>
     <div class="zone-label" id="field-count-label">On field (0/4)</div>
     <div class="player-grid" id="lineup-grid"></div>
-    <button class="btn btn-primary" style="margin-top:16px;" onclick="startGame()">Kick off</button>
+    <button class="btn btn-primary" id="kickoff-btn" style="margin-top:16px;" onclick="startGame()" disabled>Kick off</button>
     <button class="btn" onclick="showScreen('screen-roster')">Back</button>
   </div>
 
@@ -333,6 +335,24 @@ input[type="text"]:focus{border-color:#2d7a3a;}
       <div class="mins-grid" id="minutes-list"></div>
     </div>
 
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-primary btn-sm" onclick="showEndGame()">End game</button>
+      <button class="btn btn-danger btn-sm" onclick="newGame()">New game</button>
+    </div>
+  </div>
+
+  <div id="screen-endgame" class="screen">
+    <h1>Full time</h1>
+    <p class="subtitle">Minutes played this game</p>
+    <div class="card">
+      <div class="card-title">Final minutes</div>
+      <div class="mins-grid" id="endgame-minutes"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Suggested starting lineup next week</div>
+      <p style="font-size:13px;color:#888;margin-bottom:12px;">Based on least playing time today</p>
+      <div class="player-grid" id="endgame-lineup"></div>
+    </div>
     <button class="btn btn-danger btn-sm" onclick="newGame()" style="margin-top:4px;">New game</button>
   </div>
 
@@ -363,11 +383,18 @@ function addNameField(val){
   var input=document.createElement('input');
   input.type='text';input.placeholder='Player name';
   if(val)input.value=val;
+  input.addEventListener('input',checkRosterValid);
   var btn=document.createElement('button');
   btn.className='remove-btn';btn.textContent='x';
-  btn.onclick=function(){row.remove();};
+  btn.onclick=function(){row.remove();checkRosterValid();};
   row.appendChild(input);row.appendChild(btn);
   list.appendChild(row);
+  checkRosterValid();
+}
+
+function checkRosterValid(){
+  var names=getNames();
+  document.getElementById('lineup-btn').disabled=names.length<2;
 }
 
 function getNames(){
@@ -405,6 +432,7 @@ function renderLineup(){
     grid.appendChild(chip);
   });
   document.getElementById('field-count-label').textContent='On field ('+onField.length+'/'+mf+')';
+  document.getElementById('kickoff-btn').disabled=onField.length!==mf;
 }
 
 function startGame(){
@@ -454,12 +482,19 @@ function updateNextSub(){
   document.getElementById('next-sub-display').textContent=m+':'+String(s).padStart(2,'0');
 }
 
+var wallClockStart=null;
+var secondsAtStart=0;
+var halftimeAlerted=false;
+
 function toggleTimer(){
   if(running){
     clearInterval(timerInterval);running=false;
+    wallClockStart=null;
     document.getElementById('start-stop-btn').textContent='Resume';
   } else {
     running=true;
+    wallClockStart=Date.now();
+    secondsAtStart=seconds;
     document.getElementById('start-stop-btn').textContent='Pause';
     timerInterval=setInterval(tick,1000);
   }
@@ -473,8 +508,36 @@ function tick(){
   document.getElementById('timer-display').textContent=m+':'+String(s).padStart(2,'0');
   updateNextSub();
   renderMinutes();
+  if(seconds===1200&&!halftimeAlerted){
+    halftimeAlerted=true;
+    if(document.getElementById('sound-toggle').checked)playHalftimeBeep();
+  }
   if(seconds>=nextSubAt)triggerSubAlert();
 }
+
+document.addEventListener('visibilitychange',function(){
+  if(!document.hidden&&running&&wallClockStart!==null){
+    clearInterval(timerInterval);
+    var elapsed=Math.floor((Date.now()-wallClockStart)/1000);
+    var newSeconds=secondsAtStart+elapsed;
+    var diff=newSeconds-seconds;
+    if(diff>0){
+      onField.forEach(function(p){totalSeconds[p]+=diff;});
+      seconds=newSeconds;
+      var m=Math.floor(seconds/60);
+      var s=seconds%60;
+      document.getElementById('timer-display').textContent=m+':'+String(s).padStart(2,'0');
+      updateNextSub();
+      renderMinutes();
+      if(seconds>=1200&&!halftimeAlerted){
+        halftimeAlerted=true;
+        if(document.getElementById('sound-toggle').checked)playHalftimeBeep();
+      }
+      if(seconds>=nextSubAt){triggerSubAlert();return;}
+    }
+    timerInterval=setInterval(tick,1000);
+  }
+});
 
 function triggerSubAlert(){
   clearInterval(timerInterval);running=false;
@@ -567,10 +630,38 @@ function cancelManualSub(){
 function resetHalf(){
   if(!confirm('Start new half? Timer resets, minutes carry over.'))return;
   clearInterval(timerInterval);running=false;seconds=0;nextSubAt=300;
-  half=half===1?2:1;
+  half=half===1?2:1;halftimeAlerted=false;wallClockStart=null;
   document.getElementById('start-stop-btn').textContent='Start';
   document.getElementById('timer-display').textContent='0:00';
   renderGame();
+}
+
+function showEndGame(){
+  if(!confirm('End the game? This will stop the timer.'))return;
+  clearInterval(timerInterval);running=false;
+  var sorted=players.slice().sort(function(a,b){return totalSeconds[a]-totalSeconds[b];});
+  var mf=maxFieldCount();
+  var starters=sorted.slice(0,mf);
+  var ml=document.getElementById('endgame-minutes');
+  ml.innerHTML='';
+  sorted.forEach(function(p){
+    var mins=Math.floor(totalSeconds[p]/60);
+    var secs=totalSeconds[p]%60;
+    var chip=document.createElement('div');
+    chip.className='mins-chip';
+    chip.innerHTML='<span class="mins-name">'+p+'</span><span class="mins-val">'+mins+':'+String(secs).padStart(2,'0')+'</span>';
+    ml.appendChild(chip);
+  });
+  var lg=document.getElementById('endgame-lineup');
+  lg.innerHTML='';
+  players.slice().sort(function(a,b){return totalSeconds[a]-totalSeconds[b];}).forEach(function(p){
+    var chip=document.createElement('div');
+    var isStarter=starters.indexOf(p)>-1;
+    chip.className='player-chip '+(isStarter?'on-field':'on-bench');
+    chip.textContent=p;
+    lg.appendChild(chip);
+  });
+  showScreen('screen-endgame');
 }
 
 function newGame(){
@@ -582,21 +673,48 @@ function newGame(){
 function playBeep(){
   try{
     if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-    [0,200,400].forEach(function(delay){
-      var osc=audioCtx.createOscillator();
-      var gain=audioCtx.createGain();
-      osc.connect(gain);gain.connect(audioCtx.destination);
-      osc.frequency.value=880;
-      gain.gain.setValueAtTime(0.4,audioCtx.currentTime+delay/1000);
-      gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+delay/1000+0.15);
-      osc.start(audioCtx.currentTime+delay/1000);
-      osc.stop(audioCtx.currentTime+delay/1000+0.2);
+    audioCtx.resume().then(function(){
+      [0,200,400].forEach(function(delay){
+        var osc=audioCtx.createOscillator();
+        var gain=audioCtx.createGain();
+        osc.connect(gain);gain.connect(audioCtx.destination);
+        osc.frequency.value=880;
+        gain.gain.setValueAtTime(0.4,audioCtx.currentTime+delay/1000);
+        gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+delay/1000+0.15);
+        osc.start(audioCtx.currentTime+delay/1000);
+        osc.stop(audioCtx.currentTime+delay/1000+0.2);
+      });
     });
   }catch(e){}
 }
 
-addNameField('Sterling');
-for(var i=0;i<6;i++)addNameField();
+function playHalftimeBeep(){
+  try{
+    if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    audioCtx.resume().then(function(){
+      [{f:880,t:0},{f:660,t:0.35},{f:440,t:0.7}].forEach(function(note){
+        var osc=audioCtx.createOscillator();
+        var gain=audioCtx.createGain();
+        osc.connect(gain);gain.connect(audioCtx.destination);
+        osc.frequency.value=note.f;
+        gain.gain.setValueAtTime(0.5,audioCtx.currentTime+note.t);
+        gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+note.t+0.3);
+        osc.start(audioCtx.currentTime+note.t);
+        osc.stop(audioCtx.currentTime+note.t+0.35);
+      });
+    });
+  }catch(e){}
+}
+
+for(var i=0;i<7;i++)addNameField();
+
+document.addEventListener('touchstart',function initAudio(){
+  if(!audioCtx){
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    audioCtx.resume();
+  }
+  document.removeEventListener('touchstart',initAudio);
+},false);
 </script>
 </body>
 </html>
