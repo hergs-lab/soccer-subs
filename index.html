@@ -285,13 +285,13 @@ input[type="text"]:focus{border-color:#2d7a3a;}
 
     <div class="pitch-wrap">
       <div class="pitch-header">
-        <div class="pitch-title">On the pitch</div>
         <div style="display:flex;align-items:center;gap:10px;">
+          <button class="btn btn-primary" id="start-stop-btn" onclick="toggleTimer()" style="margin-bottom:0;padding:8px 20px;font-size:18px;width:auto;">Start</button>
           <span class="half-badge" id="half-badge">1st half</span>
-          <button id="sound-btn" onclick="toggleSound()" style="background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;" aria-label="Toggle sound">
-            <svg id="sound-icon" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"></svg>
-          </button>
         </div>
+        <button id="sound-btn" onclick="toggleSound()" style="background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;" aria-label="Toggle sound">
+          <svg id="sound-icon" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"></svg>
+        </button>
       </div>
       <div class="pitch-field">
         <div class="field-players" id="field-list"></div>
@@ -321,7 +321,6 @@ input[type="text"]:focus{border-color:#2d7a3a;}
     </div>
 
     <div class="controls">
-      <button class="btn btn-primary" id="start-stop-btn" onclick="toggleTimer()">Start</button>
       <button class="btn" onclick="triggerManualSub()">Sub now</button>
       <button class="btn" onclick="resetHalf()">New half</button>
     </div>
