@@ -286,15 +286,24 @@ input[type="text"]:focus{border-color:#2d7a3a;}
     <div class="pitch-wrap">
       <div class="pitch-header">
         <div style="display:flex;align-items:center;gap:10px;">
-          <button class="btn btn-primary" id="start-stop-btn" onclick="toggleTimer()" style="margin-bottom:0;padding:8px 20px;font-size:18px;width:auto;">Start</button>
+          <div class="pitch-title">On the pitch</div>
           <span class="half-badge" id="half-badge">1st half</span>
         </div>
         <button id="sound-btn" onclick="toggleSound()" style="background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;" aria-label="Toggle sound">
           <svg id="sound-icon" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"></svg>
         </button>
       </div>
-      <div class="pitch-field">
+      <div class="pitch-field" style="position:relative;">
         <div class="field-players" id="field-list"></div>
+        <button id="start-stop-btn" onclick="toggleTimer()" style="
+          position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+          background:#fff176;border:none;border-radius:24px;
+          font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;
+          color:#1b5e20;letter-spacing:0.06em;
+          padding:10px 32px;cursor:pointer;z-index:10;
+          box-shadow:0 2px 8px rgba(0,0,0,0.25);
+          white-space:nowrap;
+        ">Start</button>
       </div>
       <div class="bench-label-row">Bench</div>
       <div class="bench-strip" id="bench-list"></div>
@@ -498,15 +507,18 @@ var secondsAtStart=0;
 var halftimeAlerted=false;
 
 function toggleTimer(){
+  var btn=document.getElementById('start-stop-btn');
   if(running){
     clearInterval(timerInterval);running=false;
     wallClockStart=null;
-    document.getElementById('start-stop-btn').textContent='Resume';
+    btn.textContent='Resume';
+    btn.style.background='#fff176';btn.style.color='#1b5e20';
   } else {
     running=true;
     wallClockStart=Date.now();
     secondsAtStart=seconds;
-    document.getElementById('start-stop-btn').textContent='Pause';
+    btn.textContent='Pause';
+    btn.style.background='rgba(255,255,255,0.25)';btn.style.color='#fff';
     timerInterval=setInterval(tick,1000);
   }
 }
@@ -552,7 +564,8 @@ document.addEventListener('visibilitychange',function(){
 
 function triggerSubAlert(){
   clearInterval(timerInterval);running=false;
-  document.getElementById('start-stop-btn').textContent='Resume';
+  var sbtn=document.getElementById('start-stop-btn');
+  sbtn.textContent='Resume';sbtn.style.background='#fff176';sbtn.style.color='#1b5e20';
   if(soundOn)playBeep();
   if(onBench.length===0){nextSubAt+=300;return;}
   var numSwap=onBench.length;
@@ -642,7 +655,8 @@ function resetHalf(){
   if(!confirm('Start new half? Timer resets, minutes carry over.'))return;
   clearInterval(timerInterval);running=false;seconds=0;nextSubAt=300;
   half=half===1?2:1;halftimeAlerted=false;wallClockStart=null;
-  document.getElementById('start-stop-btn').textContent='Start';
+  var btn=document.getElementById('start-stop-btn');
+  btn.textContent='Start';btn.style.background='#fff176';btn.style.color='#1b5e20';
   document.getElementById('timer-display').textContent='0:00';
   renderGame();
 }
@@ -720,12 +734,14 @@ function playHalftimeBeep(){
 for(var i=0;i<7;i++)addNameField();
 renderSoundIcon();
 
-document.addEventListener('touchstart',function initAudio(){
-  if(!audioCtx){
-    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-    audioCtx.resume();
-  }
-  document.removeEventListener('touchstart',initAudio);
+document.addEventListener('touchstart',function(){
+  try{
+    if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended')audioCtx.resume();
+    var buf=audioCtx.createBuffer(1,1,22050);
+    var src=audioCtx.createBufferSource();
+    src.buffer=buf;src.connect(audioCtx.destination);src.start(0);
+  }catch(e){}
 },false);
 </script>
 </body>
