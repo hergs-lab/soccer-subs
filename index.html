@@ -253,6 +253,7 @@ input[type="text"]:focus{border-color:#2d7a3a;}
       <div id="name-list"></div>
       <button class="add-btn" onclick="addNameField()">+ add player</button>
     </div>
+    <p id="roster-warning" style="font-size:13px;color:#b45309;background:#fffbeb;border-radius:8px;padding:10px 12px;margin-bottom:10px;display:none;">With fewer than 5 players no substitutions will occur — the timer will still run.</p>
     <button class="btn btn-primary" id="lineup-btn" onclick="goToLineup()" disabled>Set starting lineup</button>
   </div>
 
@@ -293,10 +294,10 @@ input[type="text"]:focus{border-color:#2d7a3a;}
           <svg id="sound-icon" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"></svg>
         </button>
       </div>
-      <div class="pitch-field" style="position:relative;">
+      <div class="pitch-field" style="position:relative;padding-bottom:60px;">
         <div class="field-players" id="field-list"></div>
         <button id="start-stop-btn" onclick="toggleTimer()" style="
-          position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+          position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
           background:#fff176;border:none;border-radius:24px;
           font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;
           color:#1b5e20;letter-spacing:0.06em;
@@ -396,25 +397,43 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
 }
 
+function reNumberRows(){
+  var rows=document.querySelectorAll('#name-list .name-row');
+  rows.forEach(function(row,i){
+    var num=row.querySelector('.row-num');
+    if(num)num.textContent=(i+1)+'.';
+  });
+}
+
 function addNameField(val){
   var list=document.getElementById('name-list');
   var row=document.createElement('div');
   row.className='name-row';
+  var num=document.createElement('span');
+  num.className='row-num';
+  num.style.cssText='font-family:"Barlow Condensed",sans-serif;font-size:15px;font-weight:600;color:#bbb;min-width:22px;text-align:right;flex-shrink:0;';
   var input=document.createElement('input');
   input.type='text';input.placeholder='Player name';
   if(val)input.value=val;
   input.addEventListener('input',checkRosterValid);
   var btn=document.createElement('button');
   btn.className='remove-btn';btn.textContent='x';
-  btn.onclick=function(){row.remove();checkRosterValid();};
-  row.appendChild(input);row.appendChild(btn);
+  btn.onclick=function(){row.remove();reNumberRows();checkRosterValid();};
+  row.appendChild(num);row.appendChild(input);row.appendChild(btn);
   list.appendChild(row);
+  reNumberRows();
   checkRosterValid();
 }
 
 function checkRosterValid(){
   var names=getNames();
-  document.getElementById('lineup-btn').disabled=names.length<2;
+  var warning=document.getElementById('roster-warning');
+  if(names.length>=4&&names.length<5){
+    warning.style.display='block';
+  } else {
+    warning.style.display='none';
+  }
+  document.getElementById('lineup-btn').disabled=names.length<4;
 }
 
 function getNames(){
@@ -424,13 +443,13 @@ function getNames(){
 
 function goToLineup(){
   players=getNames();
-  if(players.length<2){alert('Add at least 2 players');return;}
+  if(players.length<4){alert('Add at least 4 players');return;}
   onField=[];onBench=players.slice();
   totalSeconds={};players.forEach(function(p){totalSeconds[p]=0;});
   renderLineup();showScreen('screen-lineup');
 }
 
-function maxFieldCount(){return Math.ceil(players.length*4/7);}
+function maxFieldCount(){return 4;}
 
 function renderLineup(){
   var grid=document.getElementById('lineup-grid');
