@@ -306,7 +306,23 @@ input[type="text"]:focus{border-color:#2d7a3a;}
           white-space:nowrap;
         ">Start</button>
       </div>
-      <div class="bench-label-row">Bench</div>
+      <div class="bench-label-row" style="display:flex;align-items:center;justify-content:center;gap:6px;">
+        <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- seat plank -->
+          <rect x="1" y="4" width="20" height="3" rx="1.5" fill="rgba(255,255,255,0.6)"/>
+          <!-- left leg -->
+          <rect x="3" y="7" width="2" height="6" rx="1" fill="rgba(255,255,255,0.6)"/>
+          <!-- right leg -->
+          <rect x="17" y="7" width="2" height="6" rx="1" fill="rgba(255,255,255,0.6)"/>
+          <!-- left back support -->
+          <rect x="3" y="1" width="2" height="6" rx="1" fill="rgba(255,255,255,0.6)"/>
+          <!-- right back support -->
+          <rect x="17" y="1" width="2" height="6" rx="1" fill="rgba(255,255,255,0.6)"/>
+          <!-- backrest -->
+          <rect x="1" y="1" width="20" height="2.5" rx="1.25" fill="rgba(255,255,255,0.6)"/>
+        </svg>
+        Bench
+      </div>
       <div class="bench-strip" id="bench-list"></div>
     </div>
 
@@ -315,9 +331,10 @@ input[type="text"]:focus{border-color:#2d7a3a;}
         <div class="timer-big" id="timer-display">0:00</div>
         <div class="timer-meta">this half</div>
       </div>
-      <div>
+      <div style="text-align:right;">
         <div class="next-sub-label">Next sub in</div>
         <div class="next-sub-val" id="next-sub-display">5:00</div>
+        <div id="coming-off-preview" style="margin-top:6px;font-size:15px;color:#c62828;font-family:'Barlow Condensed',sans-serif;font-weight:600;letter-spacing:0.04em;"></div>
       </div>
     </div>
 
@@ -486,6 +503,15 @@ function renderGame(){
   renderPitch();renderMinutes();updateNextSub();
 }
 
+function renderComingOff(){
+  var el=document.getElementById('coming-off-preview');
+  if(!el)return;
+  if(onBench.length===0){el.textContent='';return;}
+  var numSwap=onBench.length;
+  var names=onField.slice(0,numSwap).join(', ');
+  el.textContent='Off: '+names;
+}
+
 function renderPitch(){
   var fl=document.getElementById('field-list');
   var bl=document.getElementById('bench-list');
@@ -498,6 +524,7 @@ function renderPitch(){
     var el=document.createElement('div');
     el.className='bench-player';el.textContent=p;bl.appendChild(el);
   });
+  renderComingOff();
 }
 
 function renderMinutes(){
@@ -674,6 +701,14 @@ function resetHalf(){
   if(!confirm('Start new half? Timer resets, minutes carry over.'))return;
   clearInterval(timerInterval);running=false;seconds=0;nextSubAt=300;
   half=half===1?2:1;halftimeAlerted=false;wallClockStart=null;
+  // auto-apply next rotation swap
+  if(onBench.length>0){
+    var numSwap=onBench.length;
+    var off=onField.slice(0,numSwap);
+    var on=onBench.slice();
+    onField=onField.filter(function(p){return off.indexOf(p)===-1;}).concat(on);
+    onBench=onBench.filter(function(p){return on.indexOf(p)===-1;}).concat(off);
+  }
   var btn=document.getElementById('start-stop-btn');
   btn.textContent='Start';btn.style.background='#fff176';btn.style.color='#1b5e20';
   document.getElementById('timer-display').textContent='0:00';
